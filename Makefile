@@ -8,7 +8,7 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -g
 TARGET  = editor
-SRCS    = main.c io.c
+SRCS    = main.c io.c editorTexto.c compresion.c
 
 all: $(TARGET)
 
