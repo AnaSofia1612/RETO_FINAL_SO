@@ -1,3 +1,16 @@
+/**
+ * @file editorTexto.h
+ * @brief Modulo prinicipal de edicion de texto,
+ * tiene la logica del buffer: el cual es recibir el texto digitado por el usuario con un malloc(), 
+ que se va incrementando si supera el tamaño dado con un realloc
+ y separacion de bloques de texto en 4KB : se realizan dos malloc, para el arrelgo de punteros que tienen la direccion de memoria de 
+ los bloques, y la memoria de los bloques en si que contienen el valor que digito el usuario, y estan separados en 4KB los bloques. 
+ 
+ se realiza la debida liberacion de la memoria en el main. 
+ */
+
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
