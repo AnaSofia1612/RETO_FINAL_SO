@@ -16,14 +16,17 @@ Editor de texto en C nativo para Linux que implementa un pipeline completo de I/
 
 ## Pipeline de Datos
 
+```
 [Texto] → [Bloques 4KB] → [Compresión RLE] → [file.bin en disco]
-↓
-[Texto recuperado] ← [Descompresión] ← [mmap()]
+                                          ↓
+                        [Texto recuperado] ← [Descompresión] ← [mmap()]
+```
 
 ---
 
 ## Estructura del Proyecto
 
+```
 Reto_03_SO/
 ├── main.c          # Punto de entrada y pipeline completo
 ├── editorTexto.c   # Captura de texto y segmentación en bloques 4KB
@@ -33,6 +36,7 @@ Reto_03_SO/
 ├── io.c            # Escritura con write() y lectura con mmap()
 ├── io.h
 └── Makefile
+```
 
 ---
 
@@ -101,4 +105,3 @@ make clean
 - **strace** — análisis de syscalls
 - **time** — medición de tiempos
 - **make** — automatización de compilación
-
