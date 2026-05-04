@@ -107,11 +107,16 @@ valgrind --leak-check=full ./editor
 ```
 
 Resultado:
+
+```bash
+
 HEAP SUMMARY: 12 allocs, 12 frees
 All heap blocks were freed -- no leaks are possible
 ERROR SUMMARY: 0 errors from 0 contexts
 
 > Cada `malloc` tiene su `free` correspondiente. Sin memory leaks ni errores de memoria.
+
+```
 
 ---
 
