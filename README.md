@@ -63,13 +63,9 @@ RETO-3-SO/
 make
 
 # Ejecutar (menú interactivo)
-make run
-
 # Profiling de syscalls
-make strace
-
 # Medir tiempos User / Sys / Real
-make time
+make run
 
 # Limpiar binarios y archivos generados
 make clean
@@ -98,7 +94,7 @@ Al ejecutar `make run` aparece un menú con cuatro opciones:
 
 **Opción 3 — Listar:** muestra todos los `.bin` guardados sin abrirlos.
 
-**Opción 4 — Salir:** termina el programa.
+**Opción 4 — Salir:** termina el programa. Cuando se finaliza mostrara el resumen analisis del rendimiento con strace y time de los archivo/s creados
 
 ---
 
