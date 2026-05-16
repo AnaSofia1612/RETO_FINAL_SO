@@ -6,6 +6,8 @@
  * para minimizar context switches al kernel.
  * Lectura: mmap() mapea el archivo directo en memoria del proceso,
  * evitando copias extra entre kernel space y user space.
+ * Seguridad: mlock() evita que el SO mande la llave al Swap del disco.
+ * explicit_bzero() borra la llave de la RAM después de usarla.
  */
 
 #include "io.h"
@@ -71,21 +73,28 @@ unsigned char* leer_archivo(const char* filename, int* size_out) {
     return buffer;
 }
 
-char* descomprimir_rle(unsigned char* data, int size, int* out_len) {
-    /* Formato RLE: pares [cantidad][caracter] */
-    char* output = malloc(size * 10);
-    if (!output) { perror("[IO] Error en malloc"); return NULL; }
-
-    int i = 0, j = 0;
-    while (i < size - 1) {
-        unsigned char count = data[i];
-        unsigned char ch    = data[i + 1];
-        for (int k = 0; k < count; k++) output[j++] = (char)ch;
-        i += 2;
+void proteger_llave(unsigned char* llave, int size) {
+    /*
+     * mlock() bloquea la página de memoria que contiene la llave,
+     * prohibiéndole al kernel enviarla al Swap del disco.
+     * Sin esto, el SO podría escribir la llave en disco si hay
+     * poca RAM disponible, dejando basura criptográfica en el disco.
+     */
+    if (mlock(llave, size) != 0) {
+        perror("[IO] Advertencia: mlock() falló");
+    } else {
+        printf("[IO] Llave protegida en RAM con mlock()\n");
     }
-    output[j] = '\0';
-    *out_len = j;
+}
 
-    printf("[IO] RLE descomprimido: %d bytes -> %d bytes\n", size, j);
-    return output;
+void borrar_llave(unsigned char* llave, int size) {
+    /*
+     * explicit_bzero() garantiza que el compilador NO optimiza
+     * el borrado de memoria (a diferencia de memset que puede
+     * ser eliminado por el compilador si detecta que la memoria
+     * no se usa después). Esencial para seguridad criptográfica.
+     */
+    explicit_bzero(llave, size);
+    munlock(llave, size);  /* liberamos el bloqueo de RAM */
+    printf("[IO] Llave borrada de RAM con explicit_bzero()\n");
 }
