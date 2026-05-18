@@ -21,19 +21,19 @@ Los archivos comprimidos se guardan en la carpeta `archivos/` con extensión `.b
 ```
 [Texto del usuario]
       ↓
- editarTexto()        → captura línea a línea
+ editarTexto()          → captura línea a línea
       ↓
- preparar_bloques()   → segmenta en bloques de 4KB
+ preparar_bloques()     → segmenta en bloques de 4KB
       ↓
- comprimir_bloques()  → RLE + FileHeader + BlockHeaders
+ comprimir_bloques()    → RLE + FileHeader + BlockHeaders
       ↓
- encriptar()          → cifrado simétrico en RAM (pendiente)
+ encriptar()            → cifrado simétrico en RAM
       ↓
- guardar_archivo()    → write() en bloques de 4KB  →  archivos/<nombre>.bin
+ guardar_archivo()      → write() en bloques de 4KB  →  archivos/<nombre>.bin
       ↓
- leer_archivo()       → mmap() sin copias extra
+ leer_archivo()         → mmap() sin copias extra
       ↓
- desencriptar()       → descifrado en RAM (pendiente)
+ desencriptar()         → descifrado en RAM
       ↓
  descomprimir_bloques() → reconstruye texto original
       ↓
@@ -51,7 +51,7 @@ RETO-3-SO/
 ├── editorTexto.h
 ├── compresion.c      # Algoritmo RLE, FileHeader, BlockHeader
 ├── compresion.h
-├── encriptacion.c    # Cifrado simétrico en RAM (pendiente)
+├── encriptacion.c    # Cifrado simétrico en RAM
 ├── encriptacion.h
 ├── io.c              # Escritura con write(), lectura con mmap(), seguridad de llave
 ├── io.h
@@ -116,7 +116,7 @@ Al ejecutar `make run` aparece un menú con cuatro opciones:
 - `__attribute__((packed))` garantiza tamaños exactos sin padding en cualquier arquitectura
 - Valida el magic number `0x434C4552` al leer para detectar archivos corruptos
 
-### encriptacion.c — Cifrado Simétrico *(pendiente)*
+### encriptacion.c — Cifrado Simétrico
 - Algoritmo RC4 o XOR con llave simétrica
 - La llave se pide al usuario por consola, nunca hardcodeada
 - La llave se borra con `explicit_bzero()` después de usarse
@@ -154,7 +154,7 @@ Al ejecutar `make run` aparece un menú con cuatro opciones:
 ## Resultados de Profiling — Benchmark Comparativo
 
 ### Escenario A — Enfoque Clásico (fputc byte a byte)
-| Syscall   | Calls | 
+| Syscall   | Calls |
 |-----------|-------|
 | `write()` | 11    |
 | Total     | 50    |
@@ -167,8 +167,7 @@ Al ejecutar `make run` aparece un menú con cuatro opciones:
 | Total     | 104   |
 | Errores   | 4     |
 
-### Escenario C — Compresión + Encriptación *(pendiente)*
-> Se agregará cuando se integre el módulo de encriptación.
+### Escenario C — Compresión + Encriptación
 
 ### `time ./editor` — Escenario B
 | Métrica       | Valor       | Interpretación |
