@@ -27,13 +27,17 @@ Los archivos comprimidos se guardan en la carpeta `archivos/` con extensión `.b
       ↓
  comprimir_bloques()  → RLE + FileHeader + BlockHeaders
       ↓
+ encriptar()          → cifrado simétrico en RAM (pendiente)
+      ↓
  guardar_archivo()    → write() en bloques de 4KB  →  archivos/<nombre>.bin
       ↓
  leer_archivo()       → mmap() sin copias extra
       ↓
+ desencriptar()       → descifrado en RAM (pendiente)
+      ↓
  descomprimir_bloques() → reconstruye texto original
       ↓
- [Texto recuperado]
+[Texto recuperado]
 ```
 
 ---
@@ -47,7 +51,9 @@ RETO-3-SO/
 ├── editorTexto.h
 ├── compresion.c      # Algoritmo RLE, FileHeader, BlockHeader
 ├── compresion.h
-├── io.c              # Escritura con write() y lectura con mmap()
+├── encriptacion.c    # Cifrado simétrico en RAM (pendiente)
+├── encriptacion.h
+├── io.c              # Escritura con write(), lectura con mmap(), seguridad de llave
 ├── io.h
 ├── Makefile
 ├── README.md
@@ -63,8 +69,6 @@ RETO-3-SO/
 make
 
 # Ejecutar (menú interactivo)
-# Profiling de syscalls
-# Medir tiempos User / Sys / Real
 make run
 
 # Limpiar binarios y archivos generados
@@ -88,13 +92,13 @@ Al ejecutar `make run` aparece un menú con cuatro opciones:
 ╚══════════════════════════════════════╝
 ```
 
-**Opción 1 — Crear:** pide un nombre, abre el editor de texto (terminar con `SALIR`), comprime y guarda en `archivos/<nombre>.bin`. Si el archivo ya existe, pregunta si sobreescribir.
+**Opción 1 — Crear:** pide un nombre, abre el editor de texto (terminar con `SALIR`), comprime y guarda en `archivos/<nombre>.bin`.
 
 **Opción 2 — Abrir:** lista los archivos disponibles, pide el nombre y muestra el contenido descomprimido en pantalla.
 
 **Opción 3 — Listar:** muestra todos los `.bin` guardados sin abrirlos.
 
-**Opción 4 — Salir:** termina el programa. Cuando se finaliza mostrara el resumen analisis del rendimiento con strace y time de los archivo/s creados
+**Opción 4 — Salir:** termina el programa y muestra el resumen de rendimiento con strace y time.
 
 ---
 
@@ -110,11 +114,18 @@ Al ejecutar `make run` aparece un menú con cuatro opciones:
 - `FileHeader` (16 bytes, packed): magic number, versión, número de bloques, tamaño total
 - `BlockHeader` (8 bytes, packed): id y tamaño de cada bloque
 - `__attribute__((packed))` garantiza tamaños exactos sin padding en cualquier arquitectura
-- Valida el magic number `0x434C4552` al leer para detectar archivos corruptos o inválidos
+- Valida el magic number `0x434C4552` al leer para detectar archivos corruptos
 
-### io.c — I/O Optimizado
+### encriptacion.c — Cifrado Simétrico *(pendiente)*
+- Algoritmo RC4 o XOR con llave simétrica
+- La llave se pide al usuario por consola, nunca hardcodeada
+- La llave se borra con `explicit_bzero()` después de usarse
+
+### io.c — I/O Optimizado y Seguridad de Llave
 - **Escritura:** `open()` + `write()` en bloques de 4KB para minimizar context switches al kernel
 - **Lectura:** `mmap()` mapea el archivo directo en el espacio de direcciones del proceso — cero copias extra entre kernel space y user space
+- **Seguridad de llave:** `mlock()` bloquea la página de RAM que contiene la llave, evitando que el SO la envíe al Swap del disco
+- **Borrado seguro:** `explicit_bzero()` borra la llave de la RAM después de usarla, evitando basura criptográfica en memoria
 
 ---
 
@@ -140,25 +151,34 @@ Al ejecutar `make run` aparece un menú con cuatro opciones:
 
 ---
 
-## Resultados de Profiling
+## Resultados de Profiling — Benchmark Comparativo
 
-### `strace -c ./editor`
-| Syscall  | Calls | Descripción |
-|----------|-------|-------------|
-| `write()`| 2     | Bloques de 4KB — mínimas interrupciones al kernel |
-| `mmap()` | 9     | Lectura directa en memoria sin copias |
-| Total    | 42    | Syscalls totales del proceso |
+### Escenario A — Enfoque Clásico (fputc byte a byte)
+| Syscall   | Calls | 
+|-----------|-------|
+| `write()` | 11    |
+| Total     | 50    |
+| Errores   | 3     |
 
-### `time ./editor`
-| Métrica        | Valor      | Interpretación |
-|----------------|------------|----------------|
-| `user`         | 0m0.002s   | CPU en user space (compresión RLE, mallocs) |
-| `sys`          | 0m0.000s   | CPU en kernel space (syscalls) |
-| `elapsed`      | 0m0.003s   | Tiempo real total |
-| `page faults`  | 90 minor   | Generados por mmap() — esperado y normal |
+### Escenario B — Compresión RLE + write() en bloques 4KB
+| Syscall   | Calls |
+|-----------|-------|
+| `write()` | 57    |
+| Total     | 104   |
+| Errores   | 4     |
 
-> `sys` es casi 0 gracias a la reducción de syscalls por escritura en bloques de 4KB y lectura con `mmap()`.  
-> `user` sube ligeramente porque el CPU comprime en user space, pero el ahorro neto en bus I/O compensa.
+### Escenario C — Compresión + Encriptación *(pendiente)*
+> Se agregará cuando se integre el módulo de encriptación.
+
+### `time ./editor` — Escenario B
+| Métrica       | Valor       | Interpretación |
+|---------------|-------------|----------------|
+| `user`        | 0m0.00s     | CPU en user space (compresión RLE) |
+| `sys`         | 0m0.07s     | CPU en kernel space (syscalls) |
+| `elapsed`     | 1m41.85s    | Tiempo real incluyendo input del usuario |
+| `page faults` | 1163 minor  | Generados por mmap() — esperado y normal |
+
+> `sys` es bajo gracias a la escritura en bloques de 4KB y lectura con `mmap()`.
 
 ---
 
@@ -171,7 +191,7 @@ valgrind --leak-check=full ./editor
 Resultado:
 
 ```
-HEAP SUMMARY: 12 allocs, 12 frees
+HEAP SUMMARY: 9 allocs, 9 frees
 All heap blocks were freed -- no leaks are possible
 ERROR SUMMARY: 0 errors from 0 contexts
 ```
