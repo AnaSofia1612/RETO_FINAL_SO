@@ -16,15 +16,10 @@ $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
 
 run: all
-	./$(TARGET)
+	time strace -c ./$(TARGET)
 
-strace: all
-	strace -c ./$(TARGET)
-
-time: all
-	time ./$(TARGET)
 
 clean:
 	rm -f $(TARGET) file.bin
 
-.PHONY: all run strace time clean
+.PHONY: all run clean
