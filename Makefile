@@ -3,7 +3,7 @@
 #      make run    -> compila y ejecuta
 #      make strace -> profiling con strace
 #      make time   -> mide tiempo de ejecución
-#      make clean  -> elimina binarios
+#      make clean  -> elimina binarios y archivos generados
 
 CC      = gcc
 CFLAGS  = -Wall -Wextra -g
@@ -18,8 +18,8 @@ $(TARGET): $(SRCS)
 run: all
 	time strace -c ./$(TARGET)
 
-
 clean:
-	rm -f $(TARGET) file.bin
+	rm -f $(TARGET)
+	rm -rf archivos/
 
-.PHONY: all run clean
+.PHONY: all run strace time clean
