@@ -8,8 +8,6 @@
 #ifndef IO_H
 #define IO_H
 
-#include <stddef.h>
-
 /* Guarda datos binarios en disco en bloques de 4KB */
 void guardar_archivo(const char* filename, unsigned char* data, int size);
 

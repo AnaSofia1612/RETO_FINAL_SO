@@ -6,11 +6,8 @@
  * para minimizar context switches al kernel.
  * Lectura: mmap() mapea el archivo directo en memoria del proceso,
  * evitando copias extra entre kernel space y user space.
-<<<<<<< HEAD
-=======
  * Seguridad: mlock() evita que el SO mande la llave al Swap del disco.
  * explicit_bzero() borra la llave de la RAM después de usarla.
->>>>>>> fffbe11c5d58d3fc1ec6605f8311a497f279d219
  */
 
 #include "io.h"
@@ -76,25 +73,6 @@ unsigned char* leer_archivo(const char* filename, int* size_out) {
     return buffer;
 }
 
-<<<<<<< HEAD
-char* descomprimir_rle(unsigned char* data, int size, int* out_len) {
-    /* Formato RLE: pares [cantidad][caracter] */
-    char* output = malloc(size * 10);
-    if (!output) { perror("[IO] Error en malloc"); return NULL; }
-
-    int i = 0, j = 0;
-    while (i < size - 1) {
-        unsigned char count = data[i];
-        unsigned char ch    = data[i + 1];
-        for (int k = 0; k < count; k++) output[j++] = (char)ch;
-        i += 2;
-    }
-    output[j] = '\0';
-    *out_len = j;
-
-    printf("[IO] RLE descomprimido: %d bytes -> %d bytes\n", size, j);
-    return output;
-=======
 void proteger_llave(unsigned char* llave, int size) {
     /*
      * mlock() bloquea la página de memoria que contiene la llave,
@@ -119,5 +97,4 @@ void borrar_llave(unsigned char* llave, int size) {
     explicit_bzero(llave, size);
     munlock(llave, size);  /* liberamos el bloqueo de RAM */
     printf("[IO] Llave borrada de RAM con explicit_bzero()\n");
->>>>>>> fffbe11c5d58d3fc1ec6605f8311a497f279d219
 }

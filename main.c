@@ -22,10 +22,12 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <strings.h>
 
 #include "io.h"
 #include "editorTexto.h"
 #include "compresion.h"
+#include "encriptacion.h"
 
 #define DIR_ARCHIVOS "archivos"
 
@@ -144,12 +146,37 @@ static void flujo_nuevo() {
         printf("[FASE 2] Ratio    : %.2f%%\n\n",
                100.0 * payload_size / bytes_orig);
 
-    /* ── FASE 3: escritura a disco ── */
-    printf("[FASE 3] Guardando en '%s'...\n", ruta);
-    guardar_archivo(ruta, payload, payload_size);
-    printf("[FASE 3] ¡Archivo '%s' guardado exitosamente!\n", nombre);
+    /* ── FASE 3: encriptacion en RAM ── */
+    char llave[256];
+    printf("[FASE 3] Ingresa la llave de encriptacion: ");
+    fgets(llave, sizeof(llave), stdin);
+    llave[strcspn(llave, "\n")] = '\0';
 
+    if (strlen(llave) == 0) {
+        printf("Error: la llave no puede estar vacia.\n");
+        free(payload);
+        goto cleanup;
+    }
+
+    printf("[FASE 3] Encriptando...\n");
+    int            cifrado_size = 0;
+    unsigned char* cifrado      = encriptar(payload, payload_size, llave, &cifrado_size);
+    explicit_bzero(llave, sizeof(llave));
     free(payload);
+    payload = NULL;
+
+    if (!cifrado) {
+        printf("Error en la encriptacion.\n");
+        goto cleanup;
+    }
+    printf("[FASE 3] Datos encriptados: %d bytes.\n\n", cifrado_size);
+
+    /* ── FASE 4: escritura a disco ── */
+    printf("[FASE 4] Guardando en '%s'...\n", ruta);
+    guardar_archivo(ruta, cifrado, cifrado_size);
+    printf("[FASE 4] Archivo '%s' guardado exitosamente!\n", nombre);
+
+    free(cifrado);
 
 cleanup:
     free(texto_usuario);
@@ -189,13 +216,38 @@ static void flujo_abrir() {
         return;
     }
 
-    printf("[FASE 4] %d bytes leídos.\n", leido_size);
-    imprimir_metadata(leido, leido_size);
+    printf("[FASE 4] %d bytes leidos.\n", leido_size);
 
-    /* ── FASE 5: descompresión ── */
-    printf("[FASE 5] Descomprimiendo...\n");
+    /* ── FASE 5: desencriptacion en RAM ── */
+    char llave[256];
+    printf("[FASE 5] Ingresa la llave de desencriptacion: ");
+    fgets(llave, sizeof(llave), stdin);
+    llave[strcspn(llave, "\n")] = '\0';
+
+    if (strlen(llave) == 0) {
+        printf("Error: la llave no puede estar vacia.\n");
+        free(leido);
+        return;
+    }
+
+    printf("[FASE 5] Desencriptando...\n");
+    int            descifrado_size = 0;
+    unsigned char* descifrado      = desencriptar(leido, leido_size, llave, &descifrado_size);
+    explicit_bzero(llave, sizeof(llave));
+    free(leido);
+    leido = NULL;
+
+    if (!descifrado) {
+        printf("Error en la desencriptacion. Llave incorrecta o archivo corrompido.\n");
+        return;
+    }
+    printf("[FASE 5] Datos desencriptados: %d bytes.\n", descifrado_size);
+    imprimir_metadata(descifrado, descifrado_size);
+
+    /* ── FASE 6: descompresion ── */
+    printf("[FASE 6] Descomprimiendo...\n");
     int   out_len    = 0;
-    char* recuperado = descomprimir_bloques(leido, leido_size, &out_len);
+    char* recuperado = descomprimir_bloques(descifrado, descifrado_size, &out_len);
 
     if (recuperado) {
         printf("\n╔══════════════════════════════════════╗\n");
@@ -209,7 +261,7 @@ static void flujo_abrir() {
         printf("[ERROR] No se pudo descomprimir el archivo.\n");
     }
 
-    free(leido);
+    free(descifrado);
 }
 
 /*  Menú principal  */
